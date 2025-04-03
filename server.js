@@ -37,7 +37,7 @@ const extractCNISData = async (buffer) => {
   const text = data.text;
 
   const regex = /(\d{2}\/\d{4})\D+(\d{1,3}(?:\.\d{3})*,\d{2})/g;
-  const regexDIB = /NB\s+\d+\s+\d{2}\s+-\s+.*?(\d{2}\/\d{2}\/\d{4})/;
+  const regexDIB = /(?:Data In[ií]cio|NB\s+\d+.*?)\s*(\d{2}\/\d{2}\/\d{4})/;
 
   const contributions = [];
   let match;
@@ -48,8 +48,9 @@ const extractCNISData = async (buffer) => {
     contributions.push({ data: date, valor: value });
   }
 
+  let dib = null;
   const dibMatch = regexDIB.exec(text);
-  const dib = dibMatch ? dibMatch[1] : null;
+  if (dibMatch && dibMatch[1]) dib = dibMatch[1];
 
   return { contributions, dib };
 };
@@ -110,7 +111,7 @@ app.post('/enviar', upload.single('arquivo'), async (req, res) => {
     lastDIB = dib;
 
     const rmi = calcularRMI(contributions);
-    const vencidas = calcularVencidas(dib, rmi);
+    const vencidas = dib ? calcularVencidas(dib, rmi) : { totalGeral: 'indisponível' };
 
     res.send(`
       <h3>Puxado dados com sucesso!</h3>
@@ -123,11 +124,13 @@ app.post('/enviar', upload.single('arquivo'), async (req, res) => {
       <form action="/calcular" method="get">
         <button type="submit">Ver detalhes RMI</button>
       </form>
+      ${dib ? `
       <form action="/vencidas" method="get">
         <input type="hidden" name="dib" value="${dib}" />
         <input type="hidden" name="rmi" value="${rmi}" />
         <button type="submit">Ver detalhes vencidas</button>
       </form>
+      ` : ''}
     `);
   } catch (error) {
     console.error('Erro ao processar o PDF:', error);
