@@ -6,16 +6,16 @@ body {
   }
   
   .titulo {
-    background: linear-gradient(to right, #b4c3fd, #b2b1d8);
+    background: linear-gradient(to right, #1e2a5a, #001156);
     text-align: center;
     padding: 40px 20px;
-    border-bottom: 2px solid #5b56c0;
+    border-bottom: 2px solid #a7a3f3;
   }
   
   .titulo h1 {
     margin: 0;
     font-size: 2.8rem;
-    color: #100a05;
+    color: #f3f3f3;
   }
   
 
@@ -77,14 +77,14 @@ body {
   }
   
   button:hover {
-    background-color: #ff5722;
+    background-color: #ff7e22;
   }
   
   a {
     display: inline-block;
     margin-top: 10px;
     text-decoration: none;
-    color: #ff7f50;
+    color: #ff9f50;
   }
   
   a:hover {
