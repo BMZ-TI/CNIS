@@ -6,23 +6,23 @@ body {
   }
   
   .titulo {
-    background: linear-gradient(to right, #ffe7d8, #fff0e6);
+    background: linear-gradient(to right, #b4c3fd, #b2b1d8);
     text-align: center;
     padding: 40px 20px;
-    border-bottom: 2px solid #f0c5a0;
+    border-bottom: 2px solid #5b56c0;
   }
   
   .titulo h1 {
     margin: 0;
     font-size: 2.8rem;
-    color: #2c1d0e;
+    color: #100a05;
   }
   
-  h1::before,
+
   h1::after {
-    content: '✦';
+    content: '⚖️';
     margin: 0 0.5rem;
-    color: #ff7f50;
+    color: #eae0dd;
   }
   
   .container {
@@ -37,8 +37,8 @@ body {
   }
   
   .item {
-    background-color: #fffaf0;
-    border: 2px solid #f0e5d8;
+    background-color: #f0f4ff;
+    border: 2px solid #d8dbf0;
     padding: 1.5rem;
     border-radius: 12px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -67,7 +67,7 @@ body {
   
   button {
     padding: 0.5rem 1rem;
-    background-color: #ff7f50;
+    background-color: #272275;
     color: #fff;
     border: none;
     border-radius: 6px;
@@ -92,7 +92,7 @@ body {
   }
   
   footer {
-    background-color: #2c1d0e;
+    background-color: #000000;
     color: #fff;
     text-align: center;
     padding: 12px;
