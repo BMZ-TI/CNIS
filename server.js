@@ -109,7 +109,7 @@ app.get('/', (req, res) => {
       </head>
       <body>
         <div class="titulo">
-          <h1>Cálculo Jurídico</h1>
+          <h1>Sistema de Cálculo Jurídico BMZ</h1>
         </div>
         <div class="container">
           <div class="item">
