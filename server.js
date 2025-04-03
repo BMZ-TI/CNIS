@@ -59,7 +59,8 @@ const calcularRMI = (contributions) => {
 };
 
 const calcularVencidas = (dibStr, rmi, hoje = dayjs()) => {
-  const dib = dayjs(dibStr, 'DD/MM/YYYY');
+  let dib = dayjs(dibStr, 'DD/MM/YYYY');
+  if (!dib.isValid()) dib = dayjs(dibStr); // aceita ISO tbm
   if (!dib.isValid()) return { erro: 'DIB inválida' };
 
   const diffMeses = hoje.diff(dib, 'month') + 1;
@@ -77,7 +78,6 @@ const calcularVencidas = (dibStr, rmi, hoje = dayjs()) => {
   };
 };
 
-// Página HTML interativa
 app.get('/', (req, res) => {
   res.send(`
     <html>
@@ -88,12 +88,18 @@ app.get('/', (req, res) => {
           <input type="file" name="arquivo" accept="application/pdf" required />
           <button type="submit">Enviar</button>
         </form>
+        <hr />
+        <h2>Calcular parcelas vencidas</h2>
+        <form action="/vencidas" method="get">
+          DIB (dd/mm/aaaa): <input type="text" name="dib" required /> <br/>
+          RMI (ex: 327.44): <input type="number" step="0.01" name="rmi" required /> <br/>
+          <button type="submit">Calcular</button>
+        </form>
       </body>
     </html>
   `);
 });
 
-// Rota para upload via formulário
 app.post('/enviar', upload.single('arquivo'), async (req, res) => {
   try {
     const fileBuffer = fs.readFileSync(req.file.path);
@@ -129,6 +135,23 @@ app.get('/calcular', (req, res) => {
   const rmi = calcularRMI(lastExtraction);
   res.send(`
     <h3>RMI calculada: R$ ${rmi.toFixed(2)}</h3>
+    <a href="/">Voltar</a>
+  `);
+});
+
+app.get('/vencidas', (req, res) => {
+  const { dib, rmi } = req.query;
+  const resultado = calcularVencidas(dib, parseFloat(rmi));
+  if (resultado.erro) return res.send(`<h3>${resultado.erro}</h3><a href="/">Voltar</a>`);
+  res.send(`
+    <h3>Resultado das Parcelas Vencidas</h3>
+    <ul>
+      <li>Meses: ${resultado.meses}</li>
+      <li>13ºs: ${resultado.decimos}</li>
+      <li>Total mensal: R$ ${resultado.totalMensal}</li>
+      <li>Total 13º: R$ ${resultado.total13}</li>
+      <li><b>Total geral: R$ ${resultado.totalGeral}</b></li>
+    </ul>
     <a href="/">Voltar</a>
   `);
 });
