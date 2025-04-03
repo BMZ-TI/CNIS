@@ -4,6 +4,9 @@ const pdfParse = require('pdf-parse');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const dayjs = require('dayjs');
+const customParseFormat = require('dayjs/plugin/customParseFormat');
+dayjs.extend(customParseFormat);
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -53,6 +56,25 @@ const calcularRMI = (contributions) => {
   const top80 = sorted.slice(0, countToUse);
   const media = top80.reduce((acc, curr) => acc + curr.valor, 0) / top80.length;
   return parseFloat((media * 0.5).toFixed(2));
+};
+
+const calcularVencidas = (dibStr, rmi, hoje = dayjs()) => {
+  const dib = dayjs(dibStr, 'DD/MM/YYYY');
+  if (!dib.isValid()) return { erro: 'DIB inválida' };
+
+  const diffMeses = hoje.diff(dib, 'month') + 1;
+  const totalMensal = diffMeses * rmi;
+
+  const qtd13 = hoje.year() - dib.year() + 1;
+  const total13 = qtd13 * rmi;
+
+  return {
+    meses: diffMeses,
+    decimos: qtd13,
+    totalMensal: parseFloat(totalMensal.toFixed(2)),
+    total13: parseFloat(total13.toFixed(2)),
+    totalGeral: parseFloat((totalMensal + total13).toFixed(2))
+  };
 };
 
 // Página HTML interativa
@@ -111,7 +133,6 @@ app.get('/calcular', (req, res) => {
   `);
 });
 
-// API via Make: extrair dados do PDF
 app.post('/api/extrair-cnis', upload.single('arquivo'), async (req, res) => {
   try {
     const fileBuffer = fs.readFileSync(req.file.path);
@@ -124,7 +145,6 @@ app.post('/api/extrair-cnis', upload.single('arquivo'), async (req, res) => {
   }
 });
 
-// API via Make: cálculo da RMI (recebe lista JSON)
 app.post('/api/calcular-rmi', (req, res) => {
   try {
     const lista = req.body;
@@ -133,6 +153,17 @@ app.post('/api/calcular-rmi', (req, res) => {
   } catch (err) {
     console.error('Erro ao calcular RMI:', err);
     res.status(400).json({ erro: 'Erro no cálculo da RMI' });
+  }
+});
+
+app.post('/api/calcular-vencidas', (req, res) => {
+  try {
+    const { dib, rmi } = req.body;
+    const resultado = calcularVencidas(dib, parseFloat(rmi));
+    res.json(resultado);
+  } catch (err) {
+    console.error('Erro ao calcular vencidas:', err);
+    res.status(400).json({ erro: 'Erro no cálculo de parcelas vencidas' });
   }
 });
 
