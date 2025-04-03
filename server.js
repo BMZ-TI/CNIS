@@ -120,7 +120,7 @@ app.get('/', (req, res) => {
             </form>
           </div>
         </div>
-        <footer><p>© Sistema de Cálculo Jurídico da BMZ Advogados Associados</p></footer>
+        <footer><p>©Sistema de Cálculo Jurídico da BMZ Advogados Associados</p></footer>
       </body>
     </html>
   `);
@@ -168,7 +168,7 @@ app.post('/enviar', upload.single('arquivo'), async (req, res) => {
             ` : ''}
           </div>
         </div>
-        <footer><p>© Sistema CNIS Inteligente</p></footer>
+        <footer><p>©Sistema de Cálculo Jurídico da BMZ Advogados Associadose</p></footer>
       </body>
       </html>
     `);
