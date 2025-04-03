@@ -17,6 +17,7 @@ app.use(express.json());
 app.use(express.static('public'));
 
 let lastExtraction = [];
+let lastDIB = null;
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -34,7 +35,10 @@ const upload = multer({ storage });
 const extractCNISData = async (buffer) => {
   const data = await pdfParse(buffer);
   const text = data.text;
+
   const regex = /(\d{2}\/\d{4})\D+(\d{1,3}(?:\.\d{3})*,\d{2})/g;
+  const regexDIB = /NB\s+\d+\s+\d{2}\s+-\s+.*?(\d{2}\/\d{2}\/\d{4})/;
+
   const contributions = [];
   let match;
 
@@ -44,7 +48,10 @@ const extractCNISData = async (buffer) => {
     contributions.push({ data: date, valor: value });
   }
 
-  return contributions;
+  const dibMatch = regexDIB.exec(text);
+  const dib = dibMatch ? dibMatch[1] : null;
+
+  return { contributions, dib };
 };
 
 const calcularRMI = (contributions) => {
@@ -60,7 +67,7 @@ const calcularRMI = (contributions) => {
 
 const calcularVencidas = (dibStr, rmi, hoje = dayjs()) => {
   let dib = dayjs(dibStr, 'DD/MM/YYYY');
-  if (!dib.isValid()) dib = dayjs(dibStr); // aceita ISO tbm
+  if (!dib.isValid()) dib = dayjs(dibStr);
   if (!dib.isValid()) return { erro: 'DIB inválida' };
 
   const diffMeses = hoje.diff(dib, 'month') + 1;
@@ -88,13 +95,6 @@ app.get('/', (req, res) => {
           <input type="file" name="arquivo" accept="application/pdf" required />
           <button type="submit">Enviar</button>
         </form>
-        <hr />
-        <h2>Calcular parcelas vencidas</h2>
-        <form action="/vencidas" method="get">
-          DIB (dd/mm/aaaa): <input type="text" name="dib" required /> <br/>
-          RMI (ex: 327.44): <input type="number" step="0.01" name="rmi" required /> <br/>
-          <button type="submit">Calcular</button>
-        </form>
       </body>
     </html>
   `);
@@ -103,18 +103,30 @@ app.get('/', (req, res) => {
 app.post('/enviar', upload.single('arquivo'), async (req, res) => {
   try {
     const fileBuffer = fs.readFileSync(req.file.path);
-    const result = await extractCNISData(fileBuffer);
+    const { contributions, dib } = await extractCNISData(fileBuffer);
     fs.unlinkSync(req.file.path);
 
-    lastExtraction = result;
+    lastExtraction = contributions;
+    lastDIB = dib;
+
+    const rmi = calcularRMI(contributions);
+    const vencidas = calcularVencidas(dib, rmi);
 
     res.send(`
       <h3>Puxado dados com sucesso!</h3>
+      <p><strong>DIB:</strong> ${dib || 'não encontrada'}</p>
+      <p><strong>RMI:</strong> R$ ${rmi.toFixed(2)}</p>
+      <p><strong>Total vencidas:</strong> R$ ${vencidas.totalGeral}</p>
       <form action="/ver" method="get">
         <button type="submit">Ver dados extraídos</button>
       </form>
       <form action="/calcular" method="get">
-        <button type="submit">Calcular RMI</button>
+        <button type="submit">Ver detalhes RMI</button>
+      </form>
+      <form action="/vencidas" method="get">
+        <input type="hidden" name="dib" value="${dib}" />
+        <input type="hidden" name="rmi" value="${rmi}" />
+        <button type="submit">Ver detalhes vencidas</button>
       </form>
     `);
   } catch (error) {
@@ -159,9 +171,9 @@ app.get('/vencidas', (req, res) => {
 app.post('/api/extrair-cnis', upload.single('arquivo'), async (req, res) => {
   try {
     const fileBuffer = fs.readFileSync(req.file.path);
-    const result = await extractCNISData(fileBuffer);
+    const { contributions, dib } = await extractCNISData(fileBuffer);
     fs.unlinkSync(req.file.path);
-    res.json(result);
+    res.json({ contributions, dib });
   } catch (error) {
     console.error('Erro ao processar o PDF:', error);
     res.status(500).json({ erro: 'Erro ao processar o arquivo.' });
