@@ -1,6 +1,5 @@
 const express = require('express');
 const multer = require('multer');
-const pdfjsLib = require('pdfjs-dist');
 const pdfParse = require('pdf-parse');
 const cors = require('cors');
 const fs = require('fs');
@@ -11,7 +10,10 @@ const port = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(express.static('public'));
+
+let lastExtraction = [];
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -42,7 +44,18 @@ const extractCNISData = async (buffer) => {
   return contributions;
 };
 
-// Página de formulário HTML
+const calcularRMI = (contributions) => {
+  if (!contributions.length) return 0;
+  const validValues = contributions.filter(c => typeof c.valor === 'number' && !isNaN(c.valor) && c.valor > 0);
+  if (!validValues.length) return 0;
+  const sorted = [...validValues].sort((a, b) => b.valor - a.valor);
+  const countToUse = Math.max(Math.floor(sorted.length * 0.8), 1);
+  const top80 = sorted.slice(0, countToUse);
+  const media = top80.reduce((acc, curr) => acc + curr.valor, 0) / top80.length;
+  return parseFloat((media * 0.5).toFixed(2));
+};
+
+// Página HTML interativa
 app.get('/', (req, res) => {
   res.send(`
     <html>
@@ -58,17 +71,23 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Formulário manual (via navegador)
+// Rota para upload via formulário
 app.post('/enviar', upload.single('arquivo'), async (req, res) => {
   try {
     const fileBuffer = fs.readFileSync(req.file.path);
     const result = await extractCNISData(fileBuffer);
     fs.unlinkSync(req.file.path);
 
+    lastExtraction = result;
+
     res.send(`
-      <h3>Resultado extraído:</h3>
-      <pre>${JSON.stringify(result, null, 2)}</pre>
-      <a href="/">Voltar</a>
+      <h3>Puxado dados com sucesso!</h3>
+      <form action="/ver" method="get">
+        <button type="submit">Ver dados extraídos</button>
+      </form>
+      <form action="/calcular" method="get">
+        <button type="submit">Calcular RMI</button>
+      </form>
     `);
   } catch (error) {
     console.error('Erro ao processar o PDF:', error);
@@ -76,7 +95,23 @@ app.post('/enviar', upload.single('arquivo'), async (req, res) => {
   }
 });
 
-// API para uso externo (Make, etc)
+app.get('/ver', (req, res) => {
+  res.send(`
+    <h3>Dados extraídos:</h3>
+    <pre>${JSON.stringify(lastExtraction, null, 2)}</pre>
+    <a href="/">Voltar</a>
+  `);
+});
+
+app.get('/calcular', (req, res) => {
+  const rmi = calcularRMI(lastExtraction);
+  res.send(`
+    <h3>RMI calculada: R$ ${rmi.toFixed(2)}</h3>
+    <a href="/">Voltar</a>
+  `);
+});
+
+// API via Make: extrair dados do PDF
 app.post('/api/extrair-cnis', upload.single('arquivo'), async (req, res) => {
   try {
     const fileBuffer = fs.readFileSync(req.file.path);
@@ -86,6 +121,18 @@ app.post('/api/extrair-cnis', upload.single('arquivo'), async (req, res) => {
   } catch (error) {
     console.error('Erro ao processar o PDF:', error);
     res.status(500).json({ erro: 'Erro ao processar o arquivo.' });
+  }
+});
+
+// API via Make: cálculo da RMI (recebe lista JSON)
+app.post('/api/calcular-rmi', (req, res) => {
+  try {
+    const lista = req.body;
+    const rmi = calcularRMI(lista);
+    res.json({ rmi });
+  } catch (err) {
+    console.error('Erro ao calcular RMI:', err);
+    res.status(400).json({ erro: 'Erro no cálculo da RMI' });
   }
 });
 
