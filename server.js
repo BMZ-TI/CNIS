@@ -103,13 +103,24 @@ const calcularVencidas = (dibStr, rmi, hoje = dayjs()) => {
 app.get('/', (req, res) => {
   res.send(`
     <html>
-      <head><title>Upload CNIS</title></head>
+      <head>
+        <title>Upload CNIS</title>
+        <link rel="stylesheet" href="/style.css">
+      </head>
       <body>
-        <h2>Enviar PDF do CNIS</h2>
-        <form action="/enviar" method="post" enctype="multipart/form-data">
-          <input type="file" name="arquivo" accept="application/pdf" required />
-          <button type="submit">Enviar</button>
-        </form>
+        <div class="titulo">
+          <h1>Cálculo Previdenciário</h1>
+        </div>
+        <div class="container">
+          <div class="item">
+            <form action="/enviar" method="post" enctype="multipart/form-data">
+              <input type="file" name="arquivo" accept="application/pdf" required />
+              <br><br>
+              <button type="submit">Enviar</button>
+            </form>
+          </div>
+        </div>
+        <footer><p>© Sistema CNIS Inteligente</p></footer>
       </body>
     </html>
   `);
@@ -128,23 +139,38 @@ app.post('/enviar', upload.single('arquivo'), async (req, res) => {
     const vencidas = dib ? calcularVencidas(dib, rmi) : { totalGeral: 'indisponível' };
 
     res.send(`
-      <h3>Puxado dados com sucesso!</h3>
-      <p><strong>DIB:</strong> ${dib || 'não encontrada'}</p>
-      <p><strong>RMI:</strong> R$ ${rmi.toFixed(2)}</p>
-      <p><strong>Total vencidas:</strong> R$ ${vencidas.totalGeral}</p>
-      <form action="/ver" method="get">
-        <button type="submit">Ver dados extraídos</button>
-      </form>
-      <form action="/calcular" method="get">
-        <button type="submit">Ver detalhes RMI</button>
-      </form>
-      ${dib ? `
-      <form action="/vencidas" method="get">
-        <input type="hidden" name="dib" value="${dib}" />
-        <input type="hidden" name="rmi" value="${rmi}" />
-        <button type="submit">Ver detalhes vencidas</button>
-      </form>
-      ` : ''}
+      <html>
+      <head>
+        <link rel="stylesheet" href="/style.css">
+        <title>Resultado CNIS</title>
+      </head>
+      <body>
+        <div class="titulo">
+          <h1>Resultado</h1>
+        </div>
+        <div class="container">
+          <div class="item">
+            <p><strong>DIB:</strong> ${dib || 'não encontrada'}</p>
+            <p><strong>RMI:</strong> R$ ${rmi.toFixed(2)}</p>
+            <p><strong>Total vencidas:</strong> R$ ${vencidas.totalGeral}</p>
+            <form action="/ver" method="get">
+              <button type="submit">Ver dados extraídos</button>
+            </form>
+            <form action="/calcular" method="get">
+              <button type="submit">Ver detalhes RMI</button>
+            </form>
+            ${dib ? `
+            <form action="/vencidas" method="get">
+              <input type="hidden" name="dib" value="${dib}" />
+              <input type="hidden" name="rmi" value="${rmi}" />
+              <button type="submit">Ver detalhes vencidas</button>
+            </form>
+            ` : ''}
+          </div>
+        </div>
+        <footer><p>© Sistema CNIS Inteligente</p></footer>
+      </body>
+      </html>
     `);
   } catch (error) {
     console.error('Erro ao processar o PDF:', error);
@@ -154,17 +180,28 @@ app.post('/enviar', upload.single('arquivo'), async (req, res) => {
 
 app.get('/ver', (req, res) => {
   res.send(`
-    <h3>Dados extraídos:</h3>
+    <html><head><link rel="stylesheet" href="/style.css"></head><body>
+    <div class="titulo"><h1>Extração</h1></div>
+    <div class="container">
+    <div class="item">
     <pre>${JSON.stringify(lastExtraction, null, 2)}</pre>
     <a href="/">Voltar</a>
+    </div>
+    </div>
+    </body></html>
   `);
 });
 
 app.get('/calcular', (req, res) => {
   const rmi = calcularRMI(lastExtraction);
   res.send(`
+    <html><head><link rel="stylesheet" href="/style.css"></head><body>
+    <div class="titulo"><h1>RMI</h1></div>
+    <div class="container"><div class="item">
     <h3>RMI calculada: R$ ${rmi.toFixed(2)}</h3>
     <a href="/">Voltar</a>
+    </div></div>
+    </body></html>
   `);
 });
 
@@ -173,7 +210,10 @@ app.get('/vencidas', (req, res) => {
   const resultado = calcularVencidas(dib, parseFloat(rmi));
   if (resultado.erro) return res.send(`<h3>${resultado.erro}</h3><a href="/">Voltar</a>`);
   res.send(`
-    <h3>Resultado das Parcelas Vencidas</h3>
+    <html><head><link rel="stylesheet" href="/style.css"></head><body>
+    <div class="titulo"><h1>Parcelas Vencidas</h1></div>
+    <div class="container">
+    <div class="item">
     <ul>
       <li>Meses: ${resultado.meses}</li>
       <li>13ºs: ${resultado.decimos}</li>
@@ -182,6 +222,9 @@ app.get('/vencidas', (req, res) => {
       <li><b>Total geral: R$ ${resultado.totalGeral}</b></li>
     </ul>
     <a href="/">Voltar</a>
+    </div>
+    </div>
+    </body></html>
   `);
 });
 
