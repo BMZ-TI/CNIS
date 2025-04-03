@@ -35,10 +35,9 @@ const upload = multer({ storage });
 const extractCNISData = async (buffer) => {
   const data = await pdfParse(buffer);
   const text = data.text;
+  const lines = text.split('\n');
 
   const regex = /(\d{2}\/\d{4})\D+(\d{1,3}(?:\.\d{3})*,\d{2})/g;
-  const regexDIB = /(?:Data In[ií]cio|NB\s+\d+.*?)\s*(\d{2}\/\d{2}\/\d{4})/;
-
   const contributions = [];
   let match;
 
@@ -48,9 +47,22 @@ const extractCNISData = async (buffer) => {
     contributions.push({ data: date, valor: value });
   }
 
+  // Tenta encontrar DIB manualmente por aproximação
   let dib = null;
-  const dibMatch = regexDIB.exec(text);
-  if (dibMatch && dibMatch[1]) dib = dibMatch[1];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/NB\s+\d+/.test(line)) {
+      for (let j = 0; j <= 3; j++) {
+        const targetLine = lines[i + j];
+        const dateMatch = targetLine && targetLine.match(/(\d{2}\/\d{2}\/\d{4})/);
+        if (dateMatch) {
+          dib = dateMatch[1];
+          break;
+        }
+      }
+      if (dib) break;
+    }
+  }
 
   return { contributions, dib };
 };
