@@ -104,12 +104,12 @@ app.get('/', (req, res) => {
   res.send(`
     <html>
       <head>
-        <title>Upload CNIS</title>
+        <title>CJ BMZ</title>
         <link rel="stylesheet" href="/style.css">
       </head>
       <body>
         <div class="titulo">
-          <h1>Cálculo Previdenciário</h1>
+          <h1>Cálculo Jurídico</h1>
         </div>
         <div class="container">
           <div class="item">
@@ -120,7 +120,7 @@ app.get('/', (req, res) => {
             </form>
           </div>
         </div>
-        <footer><p>© Sistema CNIS Inteligente</p></footer>
+        <footer><p>© Sistema de Cálculo Jurídico da BMZ Advogados Associados</p></footer>
       </body>
     </html>
   `);
