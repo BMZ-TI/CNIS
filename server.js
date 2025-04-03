@@ -38,6 +38,8 @@ const extractCNISData = async (buffer) => {
   const lines = text.split('\n');
 
   const regex = /(\d{2}\/\d{4})\D+(\d{1,3}(?:\.\d{3})*,\d{2})/g;
+  const regexData = /(\d{2}\/\d{2}\/\d{4})/;
+
   const contributions = [];
   let match;
 
@@ -47,14 +49,14 @@ const extractCNISData = async (buffer) => {
     contributions.push({ data: date, valor: value });
   }
 
-  // Tenta encontrar DIB manualmente por aproximação
+  // Tenta encontrar DIB: primeira data após "NB" ou "Data Início"
   let dib = null;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (/NB\s+\d+/.test(line)) {
+    if (/NB\s+\d+/.test(line) || /Data In[ií]cio/.test(line)) {
       for (let j = 0; j <= 3; j++) {
         const targetLine = lines[i + j];
-        const dateMatch = targetLine && targetLine.match(/(\d{2}\/\d{2}\/\d{4})/);
+        const dateMatch = targetLine && targetLine.match(regexData);
         if (dateMatch) {
           dib = dateMatch[1];
           break;
