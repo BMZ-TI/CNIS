@@ -49,7 +49,6 @@ const extractCNISData = async (buffer) => {
     contributions.push({ data: date, valor: value });
   }
 
-  // Tenta encontrar DIB: primeira data após "NB" ou "Data Início"
   let dib = null;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -68,6 +67,21 @@ const extractCNISData = async (buffer) => {
 
   return { contributions, dib };
 };
+
+app.post('/api/extrair-cnis', upload.single('arquivo'), async (req, res) => {
+  try {
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const extraido = await extractCNISData(fileBuffer);
+    fs.unlinkSync(req.file.path);
+
+    // Prioriza DIB enviada manualmente (via Make)
+    const dibFinal = req.body.dib || extraido.dib;
+    res.json({ contributions: extraido.contributions, dib: dibFinal });
+  } catch (error) {
+    console.error('Erro ao processar o PDF:', error);
+    res.status(500).json({ erro: 'Erro ao processar o arquivo.' });
+  }
+});
 
 const calcularRMI = (contributions) => {
   if (!contributions.length) return 0;
