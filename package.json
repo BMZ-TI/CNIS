@@ -13,6 +13,7 @@
   "pdf-parse": "^1.1.1",
   "pdfjs-dist": "^3.4.120",
   "dayjs": "^1.11.10",
-  "extenso": "^1.3.2" 
+  "extenso-js": "^1.0.0"
+
 }
 }
