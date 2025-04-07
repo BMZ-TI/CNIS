@@ -32,6 +32,10 @@ const upload = multer({ storage });
 
 // Extração de dados do CNIS
 const extractCNISData = async (buffer) => {
+  if (!buffer || !(buffer instanceof Buffer)) {
+    throw new Error("Arquivo inválido: o buffer não foi recebido corretamente.");
+  }
+
   const data = await pdfParse(buffer);
   const text = data.text;
   const lines = text.split('\n');
@@ -47,6 +51,14 @@ const extractCNISData = async (buffer) => {
     const value = parseFloat(match[2].replace(/\./g, '').replace(',', '.'));
     contributions.push({ data: date, valor: value });
   }
+
+  // Extração da DIB (opcional, dependendo do que estiver usando)
+  const dibMatch = lines.find(l => regexData.test(l));
+  const dib = dibMatch ? dibMatch.match(regexData)[1] : null;
+
+  return { contributions, dib };
+};
+
 
   let dib = null;
   for (let i = 0; i < lines.length; i++) {
