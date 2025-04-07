@@ -121,7 +121,9 @@ app.get('/', (req, res) => {
               <input type="date" id="dibInput" name="dib" required />
               <br><br>
               <button onclick="enviarCalculo(event)">Calcular RMI</button>
+              <button onclick="gerarTextoPeticao(event)">Gerar texto para petição</button>
             </form>
+            <div id="resultadoTexto" style="margin-top: 2rem;"></div>
           </div>
         </div>
         <footer><p>©Sistema de Cálculo Jurídico da BMZ Advogados Associados</p></footer>
@@ -160,6 +162,42 @@ app.get('/', (req, res) => {
               alert("❌ Erro ao calcular.");
             }
           }
+            async function gerarTextoPeticao(event) {
+    event.preventDefault();
+
+    const dib = document.getElementById("dibInput").value;
+    const arquivo = document.querySelector('input[name="arquivo"]').files[0];
+
+    if (!dib || !arquivo) {
+      alert("Por favor, selecione o PDF e informe a DIB.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("arquivo", arquivo);
+    formData.append("DIB", dib);
+
+    try {
+      const resposta = await fetch("/api/valor-da-causa", {
+        method: "POST",
+        body: formData
+      });
+
+      const resultado = await resposta.json();
+
+      if (resultado.erro) {
+        alert("Erro: " + resultado.erro);
+      } else {
+        document.getElementById("resultadoTexto").innerHTML = `
+          <h3>Texto gerado:</h3>
+          <textarea rows="6" style="width:100%; padding:1rem; font-size:1rem;">${resultado.texto}</textarea>
+        `;
+      }
+    } catch (err) {
+      console.error(err);
+      alert("❌ Erro ao gerar texto.");
+    }
+  }
         </script>
       </body>
     </html>
