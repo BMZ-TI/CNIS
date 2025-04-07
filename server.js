@@ -122,12 +122,45 @@ app.get('/', (req, res) => {
               <br><br>
               <button onclick="enviarCalculo(event)">Calcular RMI</button>
               <button onclick="gerarTextoPeticao(event)">Gerar texto para petição</button>
+              <button onclick="verificarCNIS(event)">Ver dados do CNIS</button>
             </form>
             <div id="resultadoTexto" style="margin-top: 2rem;"></div>
           </div>
         </div>
         <footer><p>©Sistema de Cálculo Jurídico da BMZ Advogados Associados</p></footer>
         <script>
+        async function verificarCNIS(event) {
+  event.preventDefault();
+
+  const arquivo = document.querySelector('input[name="arquivo"]').files[0];
+  if (!arquivo) {
+    alert("Selecione um arquivo PDF primeiro.");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("arquivo", arquivo);
+
+  try {
+    const resposta = await fetch("/api/verificar-dados-cnis", {
+      method: "POST",
+      body: formData
+    });
+
+    const json = await resposta.json();
+
+    if (json.erro) {
+      alert("Erro ao extrair dados do CNIS.");
+    } else {
+      document.getElementById("resultadoTexto").innerHTML =
+        "<pre>" + JSON.stringify(json.dadosExtraidos, null, 2) + "</pre>";
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Erro ao tentar extrair dados do CNIS.");
+  }
+}
+
           async function enviarCalculo(event) {
     event.preventDefault();
     const dib = document.getElementById("dibInput").value;
@@ -205,6 +238,22 @@ app.get('/', (req, res) => {
     </html>
   `);
 });
+app.post('/api/verificar-dados-cnis', upload.single('arquivo'), async (req, res) => {
+  try {
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const resultado = await extractCNISData(fileBuffer);
+    fs.unlinkSync(req.file.path);
+
+    res.json({
+      sucesso: true,
+      dadosExtraidos: resultado
+    });
+  } catch (error) {
+    console.error('Erro ao extrair dados do CNIS:', error);
+    res.status(500).json({ erro: 'Erro ao extrair dados do CNIS.' });
+  }
+});
+
 
 app.post('/api/calculo-final', upload.single('arquivo'), async (req, res) => {
   try {
