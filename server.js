@@ -232,19 +232,19 @@ app.post('/api/calculo-final', upload.single('arquivo'), async (req, res) => {
 });
 app.post('/api/valor-da-causa', upload.single('arquivo'), async (req, res) => {
   try {
-    const buffer = fs.readFileSync(req.file.path);
-    const { contributions } = await extractCNISData(buffer);
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const textoExtraido = await extractCNISData(fileBuffer);
     fs.unlinkSync(req.file.path);
 
-    const dib = req.body.DIB;
+    const { contributions, dib } = textoExtraido;
 
     const resultado = calcularValorDaCausa({ contribuições: contributions, dib });
 
-    const texto = `Atribui-se à causa o valor de R$ ${resultado.total.toFixed(2)} (${valorPorExtenso(resultado.total)}), sendo R$ ${resultado.vencidas.total.toFixed(2)} (${valorPorExtenso(resultado.vencidas.total)}) referente às parcelas vencidas e R$ ${resultado.vincendas.toFixed(2)} (12 vincendas + 13º = 13 x R$ ${resultado.rmi.toFixed(2)}) (${valorPorExtenso(resultado.vincendas)}) referente às parcelas vincendas, conforme cálculo em anexo.`;
+    const texto = gerarTextoValorCausa(resultado);
 
     res.json({ texto });
   } catch (error) {
-    console.error('Erro ao calcular valor da causa:', error);
+    console.error('Erro ao calcular valor da causa:', error); // Adicione isso
     res.status(500).json({ erro: 'Erro ao calcular valor da causa.' });
   }
 });
