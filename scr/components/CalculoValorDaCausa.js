@@ -1,18 +1,88 @@
-function CalculoValorDaCausa({ result }) {
-    if (!result) return null;
-  
-    return (
-      <div className="item">
-        <h3>Resultado do Cálculo</h3>
-        <p><strong>DIB:</strong> {result.DIB}</p>
-        <p><strong>RMI:</strong> R$ {result.RMI?.toFixed(2)}</p>
-        <p><strong>Parcelas vencidas:</strong> R$ {result.parcelas_vencidas?.toFixed(2)}</p>
-        <p><strong>13ºs:</strong> R$ {result.decimos_terceiros?.toFixed(2)}</p>
-        <p><strong>Parcelas vincendas:</strong> R$ {result.vincendas?.toFixed(2)}</p>
-        <p><strong>Total:</strong> <strong>R$ {result.total?.toFixed(2)}</strong></p>
-      </div>
-    );
-  }
-  
-  export default CalculoValorDaCausa;
-  
+// scr/components/CalculoValorDaCausa.js
+
+const calcularValorDaCausa = ({ contribuições, dib }) => {
+  const dayjs = require('dayjs');
+  const customParse = require('dayjs/plugin/customParseFormat');
+  const fs = require('fs');
+  dayjs.extend(customParse);
+
+  const correcaoMonetaria = JSON.parse(
+    fs.readFileSync('./dados/correcao_monetaria_unificada_1965_2025_CORRIGIDO.json', 'utf8')
+  );
+
+  const inpcAnual = JSON.parse(
+    fs.readFileSync('./dados/inpc_anual_oficial_1990_2024.json', 'utf8')
+  );
+
+  const formatar = (valor) => Number(valor.toFixed(2));
+
+  const corrigirContribuições = () => {
+    const vencidas = [];
+
+    for (const c of contribuições) {
+      const [mes, ano] = c.data.split('/');
+      const chave = `${mes.padStart(2, '0')}/${ano}`;
+
+      const fator = correcaoMonetaria[chave];
+      if (!fator) continue;
+
+      vencidas.push({
+        ...c,
+        valorCorrigido: c.valor * fator,
+      });
+    }
+
+    return vencidas;
+  };
+
+  const calcularRMI = () => {
+    const validos = contribuições.filter(c => typeof c.valor === 'number' && c.valor > 0);
+    if (validos.length === 0) return 0;
+
+    const ordenados = [...validos].sort((a, b) => b.valor - a.valor);
+    const usados = ordenados.slice(0, Math.floor(ordenados.length * 0.8));
+
+    const media = usados.reduce((acc, cur) => acc + cur.valor, 0) / usados.length;
+    return formatar(media * 0.5);
+  };
+
+  const calcularParcelasVencidas = (rmi) => {
+    if (!dib || !dayjs(dib, 'DD/MM/YYYY').isValid()) return { total: null, meses: 0 };
+
+    const inicio = dayjs(dib, 'DD/MM/YYYY');
+    const fim = dayjs();
+    const meses = fim.diff(inicio, 'month');
+
+    const vencidas = [];
+    for (let i = 0; i < meses; i++) {
+      const dataRef = inicio.add(i, 'month');
+      const chave = `${dataRef.format('MM')}/${dataRef.format('YYYY')}`;
+      const fator = correcaoMonetaria[chave] || 1;
+      vencidas.push(rmi * fator);
+    }
+
+    const total = vencidas.reduce((a, b) => a + b, 0);
+    return {
+      total: formatar(total),
+      meses,
+    };
+  };
+
+  const calcularParcelasVincendas = (rmi) => {
+    return formatar(rmi * 13);
+  };
+
+  const rmi = calcularRMI();
+  const vencidas = calcularParcelasVencidas(rmi);
+  const vincendas = calcularParcelasVincendas(rmi);
+
+  return {
+    rmi,
+    vencidas,
+    vincendas,
+    total: vencidas.total !== null ? formatar(vencidas.total + vincendas) : null,
+    mesesVencidos: vencidas.meses,
+  };
+};
+
+module.exports = calcularValorDaCausa;
