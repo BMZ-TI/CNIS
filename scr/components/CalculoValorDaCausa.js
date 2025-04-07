@@ -85,4 +85,8 @@ const calcularValorDaCausa = ({ contribuições, dib }) => {
   };
 };
 
-module.exports = calcularValorDaCausa;
+module.exports = {
+  calcularValorDaCausa,
+  gerarTextoValorCausa
+};
+
