@@ -84,6 +84,21 @@ const calcularValorDaCausa = ({ contribuições, dib }) => {
     mesesVencidos: vencidas.meses,
   };
 };
+const gerarTextoValorCausa = ({ rmi, vencidas, vincendas, total }) => {
+  const formatarMoeda = (valor) =>
+    valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const formatarExtenso = (valor) => {
+    const extenso = require('extenso');
+    return extenso(valor.toFixed(2).replace('.', ','), { mode: 'currency' });
+  };
+
+  return `Atribui-se à causa o valor de ${formatarMoeda(total)} (${formatarExtenso(total)}), ` +
+         `sendo ${formatarMoeda(vencidas)} (${formatarExtenso(vencidas)}) referente às parcelas vencidas ` +
+         `e ${formatarMoeda(vincendas)} (12 vincendas + 13º = 13 x ${formatarMoeda(rmi)}) (${formatarExtenso(vincendas)}) ` +
+         `referente às parcelas vincendas, conforme cálculo em anexo.`;
+};
+
 
 module.exports = {
   calcularValorDaCausa,
