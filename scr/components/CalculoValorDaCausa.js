@@ -21,27 +21,36 @@ const calcularValorDaCausa = ({ contribuições, dib }) => {
     return formatar(media * 0.5);
   };
 
-  const calcularParcelasVencidas = (rmi) => {
-    if (!dib || !dayjs(dib, 'DD/MM/YYYY').isValid()) return { total: null, meses: 0 };
+const calcularParcelasVencidas = (rmi) => {
+  if (!dib || typeof dib !== 'string') return { total: null, meses: 0 };
 
-    const inicio = dayjs(dib, 'DD/MM/YYYY');
-    const fim = dayjs();
-    const meses = fim.diff(inicio, 'month');
+  // Aceita "YYYY-MM-DD" ou "DD/MM/YYYY"
+  let inicio = dayjs(dib, 'DD/MM/YYYY');
+  if (!inicio.isValid()) inicio = dayjs(dib, 'YYYY-MM-DD');
+  if (!inicio.isValid()) return { total: null, meses: 0 };
 
-    const vencidas = [];
-    for (let i = 0; i < meses; i++) {
-      const dataRef = inicio.add(i, 'month');
-      const chave = `${dataRef.format('MM')}/${dataRef.format('YYYY')}`;
-      const fator = correcaoMonetaria[chave] || 1;
-      vencidas.push(rmi * fator);
-    }
+  const fim = dayjs();
+  const meses = fim.diff(inicio, 'month');
 
-    const total = vencidas.reduce((a, b) => a + b, 0);
-    return {
-      total: formatar(total),
-      meses,
-    };
+  const vencidas = [];
+
+  for (let i = 0; i < meses; i++) {
+    const dataRef = inicio.add(i, 'month');
+    const chave = `${dataRef.format('MM')}/${dataRef.format('YYYY')}`;
+    const fator = correcaoMonetaria[chave] || 1;
+
+    if (typeof fator !== 'number' || isNaN(fator)) continue;
+
+    vencidas.push(rmi * fator);
+  }
+
+  const total = vencidas.reduce((a, b) => a + b, 0);
+  return {
+    total: Number(total.toFixed(2)),
+    meses,
   };
+};
+
 
   const calcularParcelasVincendas = (rmi) => {
     return formatar(rmi * 13);
