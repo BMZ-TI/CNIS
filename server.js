@@ -190,6 +190,29 @@ app.post('/api/calculo-final', upload.single('arquivo'), async (req, res) => {
     res.status(500).json({ erro: 'Erro no cálculo final.' });
   }
 });
+app.post('/api/valor-da-causa', upload.single('arquivo'), async (req, res) => {
+  try {
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const { contributions, dib: dibExtraida } = await extractCNISData(fileBuffer);
+    fs.unlinkSync(req.file.path);
+
+    const dib = req.body.DIB || dibExtraida;
+    if (!dib) return res.status(400).json({ erro: 'DIB não informada.' });
+
+    const resultado = calcularValorDaCausa({ contribuições: contributions, dib });
+    const texto = gerarTextoValorCausa(resultado);
+
+    res.json({
+      ...resultado,
+      texto: texto.texto,
+      dib
+    });
+  } catch (error) {
+    console.error('Erro ao calcular valor da causa:', error);
+    res.status(500).json({ erro: 'Erro ao calcular valor da causa.' });
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
