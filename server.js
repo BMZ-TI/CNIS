@@ -172,7 +172,11 @@ app.post('/api/valor-da-causa', upload.single('arquivo'), async (req, res) => {
 
     const { contributions, dib } = textoExtraido;
     const resultado = calcularValorDaCausa({ contribuições: contributions, dib });
-    const texto = `\nTotal: R$ ${resultado.total?.toFixed(2)}\nParcelas vencidas: R$ ${resultado.vencidas?.total?.toFixed(2)}\nParcelas vincendas: R$ ${resultado.vincendas?.toFixed(2)}\nRMI: R$ ${resultado.rmi?.toFixed(2)}`;
+   const texto = `\nTotal: R$ ${resultado.total?.toFixed(2)}
+                  Parcelas vencidas: R$ ${resultado.vencidas?.toFixed(2)}
+                  Parcelas vincendas: R$ ${resultado.vincendas?.toFixed(2)}
+                  RMI: R$ ${resultado.rmi?.toFixed(2)}`;
+
 
     res.json({ texto });
   } catch (error) {
