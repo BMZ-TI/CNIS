@@ -1,4 +1,4 @@
-const calcular = require('./componentes/calculoValorDaCausa');
+const calcular = require('./scr/components/CalculoValorDaCausa');
 const express = require('express');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
