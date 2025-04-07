@@ -52,29 +52,23 @@ const extractCNISData = async (buffer) => {
     contributions.push({ data: date, valor: value });
   }
 
-  // Extração da DIB (opcional, dependendo do que estiver usando)
-  const dibMatch = lines.find(l => regexData.test(l));
-  const dib = dibMatch ? dibMatch.match(regexData)[1] : null;
-
   return { contributions, dib };
 
-
-
-  let dib = null;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (/NB\s+\d+/.test(line) || /Data In[ií]cio/.test(line)) {
-      for (let j = 0; j <= 3; j++) {
-        const targetLine = lines[i + j];
-        const dateMatch = targetLine && targetLine.match(regexData);
-        if (dateMatch) {
-          dib = dateMatch[1];
-          break;
-        }
+let dib = null;
+for (let i = 0; i < lines.length; i++) {
+  const line = lines[i];
+  if (/NB\s+\d+/.test(line) || /Data In[ií]cio/.test(line)) {
+    for (let j = 0; j <= 3; j++) {
+      const targetLine = lines[i + j];
+      const dateMatch = targetLine && targetLine.match(regexData);
+      if (dateMatch) {
+        dib = dateMatch[1];
+        break;
       }
-      if (dib) break;
     }
+    if (dib) break;
   }
+}
 
   return { contributions, dib };
 };
