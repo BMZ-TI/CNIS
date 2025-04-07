@@ -83,7 +83,7 @@ const calcularValorDaCausa = ({ contribuições, dib }) => {
     total: vencidas.total !== null ? formatar(vencidas.total + vincendas) : null,
     mesesVencidos: vencidas.meses,
   };
-};
+
 const gerarTextoValorCausa = ({ rmi, vencidas, vincendas, total }) => {
   const formatarMoeda = (valor) =>
     valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
