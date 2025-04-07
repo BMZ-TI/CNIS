@@ -5,6 +5,8 @@ const cors = require('cors');
 const fs = require('fs');
 const dayjs = require('dayjs');
 const customParseFormat = require('dayjs/plugin/customParseFormat');
+const { calcularValorDaCausa, gerarTextoValorCausa } = require('./scr/components/CalculoValorDaCausa');
+
 dayjs.extend(customParseFormat);
 
 const app = express();
