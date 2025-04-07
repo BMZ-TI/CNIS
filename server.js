@@ -232,21 +232,17 @@ app.post('/api/calculo-final', upload.single('arquivo'), async (req, res) => {
 });
 app.post('/api/valor-da-causa', upload.single('arquivo'), async (req, res) => {
   try {
-    const fileBuffer = fs.readFileSync(req.file.path);
-    const { contributions, dib: dibExtraida } = await extractCNISData(fileBuffer);
+    const buffer = fs.readFileSync(req.file.path);
+    const { contributions } = await extractCNISData(buffer);
     fs.unlinkSync(req.file.path);
 
-    const dib = req.body.DIB || dibExtraida;
-    if (!dib) return res.status(400).json({ erro: 'DIB não informada.' });
+    const dib = req.body.DIB;
 
     const resultado = calcularValorDaCausa({ contribuições: contributions, dib });
-    const texto = gerarTextoValorCausa(resultado);
 
-    res.json({
-      ...resultado,
-      texto: texto.texto,
-      dib
-    });
+    const texto = `Atribui-se à causa o valor de R$ ${resultado.total.toFixed(2)} (${valorPorExtenso(resultado.total)}), sendo R$ ${resultado.vencidas.total.toFixed(2)} (${valorPorExtenso(resultado.vencidas.total)}) referente às parcelas vencidas e R$ ${resultado.vincendas.toFixed(2)} (12 vincendas + 13º = 13 x R$ ${resultado.rmi.toFixed(2)}) (${valorPorExtenso(resultado.vincendas)}) referente às parcelas vincendas, conforme cálculo em anexo.`;
+
+    res.json({ texto });
   } catch (error) {
     console.error('Erro ao calcular valor da causa:', error);
     res.status(500).json({ erro: 'Erro ao calcular valor da causa.' });
