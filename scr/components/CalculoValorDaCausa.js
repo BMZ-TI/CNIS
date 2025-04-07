@@ -32,7 +32,7 @@ const calcularParcelasVencidas = (rmi) => {
   const fim = dayjs();
   const meses = fim.diff(inicio, 'month');
 
-  const vencidas = [];
+  const vencidas = calcularParcelasVencidas(rmi, dib);
 
   for (let i = 0; i < meses; i++) {
     const dataRef = inicio.add(i, 'month');
