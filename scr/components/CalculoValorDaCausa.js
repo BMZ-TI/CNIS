@@ -21,33 +21,25 @@ const calcularValorDaCausa = ({ contribuições, dib }) => {
     return formatar(media * 0.5);
   };
 
-const calcularParcelasVencidas = (rmi) => {
+const calcularParcelasVencidas = (rmi, dib) => {
   if (!dib || typeof dib !== 'string') return { total: null, meses: 0 };
 
-  // Aceita "YYYY-MM-DD" ou "DD/MM/YYYY"
-  let inicio = dayjs(dib, 'DD/MM/YYYY');
-  if (!inicio.isValid()) inicio = dayjs(dib, 'YYYY-MM-DD');
-  if (!inicio.isValid()) return { total: null, meses: 0 };
-
+  const inicio = dayjs(dib, 'DD/MM/YYYY');
   const fim = dayjs();
   const meses = fim.diff(inicio, 'month');
 
-  const vencidas = calcularParcelasVencidas(rmi, dib);
-
+  const vencidas = [];
   for (let i = 0; i < meses; i++) {
     const dataRef = inicio.add(i, 'month');
     const chave = `${dataRef.format('MM')}/${dataRef.format('YYYY')}`;
     const fator = correcaoMonetaria[chave] || 1;
-
-    if (typeof fator !== 'number' || isNaN(fator)) continue;
-
     vencidas.push(rmi * fator);
   }
 
   const total = vencidas.reduce((a, b) => a + b, 0);
   return {
-    total: Number(total.toFixed(2)),
-    meses,
+    total: formatar(total),
+    meses
   };
 };
 
