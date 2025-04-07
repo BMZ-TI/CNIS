@@ -114,6 +114,34 @@ const calcularVencidas = (dibStr, rmi, hoje = dayjs()) => {
     totalGeral: parseFloat((totalMensal + total13).toFixed(2))
   };
 };
+app.post('/api/calculo-final', upload.single('arquivo'), async (req, res) => {
+  try {
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const { contributions, dib: dibExtraida } = await extractCNISData(fileBuffer);
+    fs.unlinkSync(req.file.path); // remove o arquivo temporário
+
+    // Usa o DIB vindo do formulário (preferencial) ou extraído do CNIS
+    const dib = req.body.DIB || dibExtraida;
+
+    if (!dib) {
+      return res.status(400).json({ erro: 'DIB não informada ou inválida.' });
+    }
+
+    const rmi = calcularRMI(contributions);
+    const vencidas = calcularVencidas(dib, rmi);
+
+    res.json({
+      rmi,
+      totalVencidas: vencidas.totalGeral,
+      detalhes: vencidas,
+      dib
+    });
+  } catch (error) {
+    console.error('❌ Erro na rota /api/calculo-final:', error);
+    res.status(500).json({ erro: 'Erro no cálculo final.' });
+  }
+});
+
 
 app.get('/', (req, res) => {
   res.send(`
