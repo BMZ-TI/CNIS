@@ -57,7 +57,7 @@ const extractCNISData = async (buffer) => {
   const dib = dibMatch ? dibMatch.match(regexData)[1] : null;
 
   return { contributions, dib };
-};
+
 
 
   let dib = null;
