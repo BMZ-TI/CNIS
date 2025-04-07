@@ -48,17 +48,22 @@ const calcularParcelasVencidas = (rmi, dib) => {
     return formatar(rmi * 13);
   };
 
-  const rmi = calcularRMI();
-  const vencidas = calcularParcelasVencidas(rmi, dib); 
-  const vincendas = calcularParcelasVincendas(rmi);
+const rmi = calcularRMI();
+const vencidasCalculadas = calcularParcelasVencidas(rmi, dib);
+const vincendas = calcularParcelasVincendas(rmi);
 
-  return {
-    rmi,
-    vencidas: vencidas.total,
-    vincendas,
-    total: vencidas.total !== null ? formatar(vencidas.total + vincendas) : null,
-    mesesVencidos: vencidas.meses,
-  };
+const total = vencidasCalculadas.total !== null
+  ? formatar(vencidasCalculadas.total + vincendas)
+  : null;
+
+return {
+  rmi,
+  vencidas: vencidasCalculadas.total,
+  vincendas,
+  total,
+  mesesVencidos: vencidasCalculadas.meses
+};
+
 };
 
 const gerarTextoValorCausa = ({ rmi, vencidas, vincendas, total }) => {
