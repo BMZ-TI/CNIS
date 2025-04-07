@@ -32,43 +32,37 @@ const upload = multer({ storage });
 
 // Extração de dados do CNIS
 const extractCNISData = async (buffer) => {
-  if (!buffer || !(buffer instanceof Buffer)) {
-    throw new Error("Arquivo inválido: o buffer não foi recebido corretamente.");
-  }
-
   const data = await pdfParse(buffer);
   const text = data.text;
   const lines = text.split('\n');
 
-  const regex = /(\d{2}\/\d{4})\D+(\d{1,3}(?:\.\d{3})*,\d{2})/g;
+  const regexContrib = /(\d{2}\/\d{4})\D+(\d{1,3}(?:\.\d{3})*,\d{2})/g;
   const regexData = /(\d{2}\/\d{2}\/\d{4})/;
 
   const contributions = [];
   let match;
 
-  while ((match = regex.exec(text)) !== null) {
+  while ((match = regexContrib.exec(text)) !== null) {
     const date = match[1];
     const value = parseFloat(match[2].replace(/\./g, '').replace(',', '.'));
     contributions.push({ data: date, valor: value });
   }
 
-  return { contributions, dib };
-
-let dib = null;
-for (let i = 0; i < lines.length; i++) {
-  const line = lines[i];
-  if (/NB\s+\d+/.test(line) || /Data In[ií]cio/.test(line)) {
-    for (let j = 0; j <= 3; j++) {
-      const targetLine = lines[i + j];
-      const dateMatch = targetLine && targetLine.match(regexData);
-      if (dateMatch) {
-        dib = dateMatch[1];
-        break;
+  let dib = null;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/NB\s+\d+/.test(line) || /Data In[ií]cio/.test(line)) {
+      for (let j = 0; j <= 3; j++) {
+        const targetLine = lines[i + j];
+        const dateMatch = targetLine && targetLine.match(regexData);
+        if (dateMatch) {
+          dib = dateMatch[1];
+          break;
+        }
       }
+      if (dib) break;
     }
-    if (dib) break;
   }
-}
 
   return { contributions, dib };
 };
