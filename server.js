@@ -136,6 +136,37 @@ app.get('/', (req, res) => {
             }
 
             const formData = new FormData();
-            formData.append("
-::contentReference[oaicite:15]{index=15}
- 
+            formData.append("arquivo", arquivo);
+            formData.append("DIB", dib);
+
+            try {
+              const resposta = await fetch("/api/calculo-final", {
+                method: "POST",
+                body: formData
+              });
+
+              const resultado = await resposta.json();
+
+              if (resultado.erro) {
+                alert("Erro: " + resultado.erro);
+              } else {
+                alert(
+                  \`✅ RMI: R$ \${resultado.rmi?.toFixed(2)}\\n📆 Total vencidas: R$ \${resultado.totalVencidas?.toFixed(2)}\`
+                );
+              }
+            } catch (err) {
+              console.error(err);
+              alert("❌ Erro ao calcular.");
+            }
+          }
+        </script>
+      </body>
+    </html>
+  `); // <== FECHAMENTO do res.send()
+});
+
+// ✅ Final do arquivo: iniciar o servidor
+app.listen(port, () => {
+  console.log(\`Servidor rodando em http://localhost:\${port}\`);
+});
+
