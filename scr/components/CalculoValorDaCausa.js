@@ -85,8 +85,16 @@ const calcularValorDaCausa = ({ contribuições, dib }) => {
   };
 };
 const gerarTextoValorCausa = ({ rmi, vencidas, vincendas, total }) => {
-    const formatarExtenso = (valor) => numeroParaExtenso(valor);
+  const formatarMoeda = (valor) =>
     valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const formatarExtenso = (valor) => numeroParaExtenso(valor);
+
+  return `Atribui-se à causa o valor de ${formatarMoeda(total)} (${formatarExtenso(total)}), ` +
+         `sendo ${formatarMoeda(vencidas)} (${formatarExtenso(vencidas)}) referente às parcelas vencidas ` +
+         `e ${formatarMoeda(vincendas)} (12 vincendas + 13º = 13 x ${formatarMoeda(rmi)}) (${formatarExtenso(vincendas)}) ` +
+         `referente às parcelas vincendas, conforme cálculo em anexo.`;
+};
 
 const numeroPorExtenso = require('numero-por-extenso');
 const formatarExtenso = (valor) => {
@@ -104,9 +112,35 @@ function numeroParaExtenso(valor) {
   const dezenasMultiplo = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
   const centenas = ['', 'cem', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
 
-  const extenso = require('numero-por-extenso');
+  function extensoParte(n) {
+    n = parseInt(n);
+    if (n < 10) return unidades[n];
+    if (n < 20) return dezenas[n - 10];
+    if (n < 100) {
+      const dez = Math.floor(n / 10);
+      const uni = n % 10;
+      return dezenasMultiplo[dez] + (uni ? ' e ' + unidades[uni] : '');
+    }
+    if (n < 1000) {
+      const cen = Math.floor(n / 100);
+      const resto = n % 100;
+      return (cen === 1 && resto === 0 ? 'cem' : centenas[cen]) + (resto ? ' e ' + extensoParte(resto) : '');
+    }
+    return '';
+  }
 
-  return extenso.porExtenso(valor, extenso.estilo.monetario);
+  const partes = valor.toFixed(2).split('.');
+  const inteiro = parseInt(partes[0]);
+  const centavos = parseInt(partes[1]);
+
+  let resultado = '';
+  if (inteiro > 0) resultado += extensoParte(inteiro) + ' real' + (inteiro > 1 ? 'es' : '');
+  if (centavos > 0) {
+    if (resultado) resultado += ' e ';
+    resultado += extensoParte(centavos) + ' centavo' + (centavos > 1 ? 's' : '');
+  }
+
+  return resultado || 'zero real';
 }
 
 
