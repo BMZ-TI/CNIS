@@ -86,7 +86,10 @@ const calcularValorDaCausa = ({ contribuições, dib }) => {
 
 const gerarTextoValorCausa = ({ rmi, vencidas, vincendas, total }) => {
   const formatarMoeda = (valor) =>
-    valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    typeof valor === 'number'
+      ? valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      : 'R$ 0,00';
+
 
   const formatarExtenso = (valor) => numeroParaExtenso(valor);
 
