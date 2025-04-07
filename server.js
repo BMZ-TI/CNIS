@@ -93,7 +93,7 @@ const calcularRMI = (contributions) => {
 
 // Cálculo das vencidas
 const calcularVencidas = (dibStr, rmi, hoje = dayjs()) => {
-  let dib = dayjs(dibStr, 'YYYY-MM-DD');
+   dib = dayjs(dibStr, 'YYYY-MM-DD');
   if (!dib.isValid()) dib = dayjs(dibStr, 'DD/MM/YYYY');
   if (!dib.isValid()) return { erro: 'DIB inválida' };
 
