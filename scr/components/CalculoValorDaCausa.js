@@ -142,8 +142,21 @@ function numeroParaExtenso(valor) {
 
   return resultado || 'zero real';
 }
+// Função para gerar o texto final da petição
+const gerarTextoValorCausa = ({ rmi, vencidas, vincendas, total }) => {
+  const formatarMoeda = (valor) =>
+    valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+  const formatarExtenso = (valor) => {
+    const extensoParte = require('../utils/numeroPorExtenso'); // ou o caminho correto
+    return extensoParte(valor);
+  };
 
+  return `Atribui-se à causa o valor de ${formatarMoeda(total)} (${formatarExtenso(total)}), ` +
+         `sendo ${formatarMoeda(vencidas)} (${formatarExtenso(vencidas)}) referente às parcelas vencidas ` +
+         `e ${formatarMoeda(vincendas)} (12 vincendas + 13º = 13 x ${formatarMoeda(rmi)}) (${formatarExtenso(vincendas)}) ` +
+         `referente às parcelas vincendas, conforme cálculo em anexo.`;
+};
 
 module.exports = {
   calcularValorDaCausa,
