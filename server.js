@@ -129,40 +129,42 @@ app.get('/', (req, res) => {
         <footer><p>©Sistema de Cálculo Jurídico da BMZ Advogados Associados</p></footer>
         <script>
           async function enviarCalculo(event) {
-            event.preventDefault();
-            const dib = document.getElementById("dibInput").value;
-            const arquivo = document.querySelector('input[name="arquivo"]').files[0];
+    event.preventDefault();
+    const dib = document.getElementById("dibInput").value;
+    const arquivo = document.querySelector('input[name="arquivo"]').files[0];
 
-            if (!dib || !arquivo) {
-              alert("Por favor, selecione o PDF e informe a DIB.");
-              return;
-            }
+    if (!dib || !arquivo) {
+      alert("Por favor, selecione o PDF e informe a DIB.");
+      return;
+    }
 
-            const formData = new FormData();
-            formData.append("arquivo", arquivo);
-            formData.append("DIB", dib);
+    const formData = new FormData();
+    formData.append("arquivo", arquivo);
+    formData.append("DIB", dib);
 
-            try {
-              const resposta = await fetch("/api/calculo-final", {
-                method: "POST",
-                body: formData
-              });
+    try {
+      const resposta = await fetch("/api/calculo-final", {
+        method: "POST",
+        body: formData
+      });
 
-              const resultado = await resposta.json();
+      const resultado = await resposta.json();
 
-              if (resultado.erro) {
-                alert("Erro: " + resultado.erro);
-              } else {
-                alert(
-                  \`✅ RMI: R$ \${resultado.rmi?.toFixed(2)}\\n📆 Total vencidas: R$ \${resultado.totalVencidas?.toFixed(2)}\`
-                );
-              }
-            } catch (err) {
-              console.error(err);
-              alert("❌ Erro ao calcular.");
-            }
-          }
-            async function gerarTextoPeticao(event) {
+      if (resultado.erro) {
+        alert("Erro: " + resultado.erro);
+      } else {
+        alert(
+          "✅ RMI: R$ " + resultado.rmi?.toFixed(2) + 
+          "\\n📆 Total vencidas: R$ " + resultado.totalVencidas?.toFixed(2)
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      alert("❌ Erro ao calcular.");
+    }
+  }
+
+  async function gerarTextoPeticao(event) {
     event.preventDefault();
 
     const dib = document.getElementById("dibInput").value;
@@ -188,10 +190,10 @@ app.get('/', (req, res) => {
       if (resultado.erro) {
         alert("Erro: " + resultado.erro);
       } else {
-        document.getElementById("resultadoTexto").innerHTML = `
-          <h3>Texto gerado:</h3>
-          <textarea rows="6" style="width:100%; padding:1rem; font-size:1rem;">${resultado.texto}</textarea>
-        `;
+        const html = '<h3>Texto gerado:</h3>' +
+                     '<textarea rows="6" style="width:100%; padding:1rem; font-size:1rem;">' +
+                     resultado.texto + '</textarea>';
+        document.getElementById("resultadoTexto").innerHTML = html;
       }
     } catch (err) {
       console.error(err);
