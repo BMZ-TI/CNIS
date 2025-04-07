@@ -89,7 +89,7 @@ const gerarTextoValorCausa = ({ rmi, vencidas, vincendas, total }) => {
     valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   const formatarExtenso = (valor) => {
-    const extenso = require('extenso');
+    const extenso = require('extenso-js');
     return extenso(valor.toFixed(2).replace('.', ','), { mode: 'currency' });
   };
 
