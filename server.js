@@ -1,4 +1,4 @@
-import CalculoValorDaCausa from './components/CalculoValorDaCausa';
+const calcular = require('./componentes/calculoValorDaCausa');
 const express = require('express');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
