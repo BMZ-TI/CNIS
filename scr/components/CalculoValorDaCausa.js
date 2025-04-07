@@ -85,7 +85,7 @@ const calcularValorDaCausa = ({ contribuições, dib }) => {
   };
 };
 const gerarTextoValorCausa = ({ rmi, vencidas, vincendas, total }) => {
-  const formatarMoeda = (valor) =>
+    const formatarExtenso = (valor) => numeroParaExtenso(valor);
     valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   const formatarExtenso = (valor) => {
@@ -98,6 +98,17 @@ const gerarTextoValorCausa = ({ rmi, vencidas, vincendas, total }) => {
          `e ${formatarMoeda(vincendas)} (12 vincendas + 13º = 13 x ${formatarMoeda(rmi)}) (${formatarExtenso(vincendas)}) ` +
          `referente às parcelas vincendas, conforme cálculo em anexo.`;
 };
+function numeroParaExtenso(valor) {
+  const unidades = ['zero', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
+  const dezenas = ['dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
+  const dezenasMultiplo = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
+  const centenas = ['', 'cem', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
+
+  const extenso = require('numero-por-extenso');
+
+  return extenso.porExtenso(valor, extenso.estilo.monetario);
+}
+
 
 
 module.exports = {
