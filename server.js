@@ -3,10 +3,8 @@ const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const cors = require('cors');
 const fs = require('fs');
-const path = require('path');
 const dayjs = require('dayjs');
 const customParseFormat = require('dayjs/plugin/customParseFormat');
-
 dayjs.extend(customParseFormat);
 
 const app = express();
@@ -17,6 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static('public'));
 
+// Upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = './uploads';
@@ -25,11 +24,11 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
-  },
+  }
 });
-
 const upload = multer({ storage });
 
+// Extração de dados do CNIS
 const extractCNISData = async (buffer) => {
   const data = await pdfParse(buffer);
   const text = data.text;
@@ -66,6 +65,7 @@ const extractCNISData = async (buffer) => {
   return { contributions, dib };
 };
 
+// Cálculo da RMI
 const calcularRMI = (contributions) => {
   if (!contributions.length) return 0;
   const validValues = contributions.filter(c => typeof c.valor === 'number' && !isNaN(c.valor) && c.valor > 0);
@@ -77,14 +77,14 @@ const calcularRMI = (contributions) => {
   return parseFloat((media * 0.5).toFixed(2));
 };
 
+// Cálculo das vencidas
 const calcularVencidas = (dibStr, rmi, hoje = dayjs()) => {
-  let dib = dayjs(dibStr, 'DD/MM/YYYY');
-  if (!dib.isValid()) dib = dayjs(dibStr);
+  let dib = dayjs(dibStr, 'YYYY-MM-DD');
+  if (!dib.isValid()) dib = dayjs(dibStr, 'DD/MM/YYYY');
   if (!dib.isValid()) return { erro: 'DIB inválida' };
 
   const diffMeses = hoje.diff(dib, 'month') + 1;
   const totalMensal = diffMeses * rmi;
-
   const qtd13 = hoje.year() - dib.year() + 1;
   const total13 = qtd13 * rmi;
 
@@ -97,6 +97,7 @@ const calcularVencidas = (dibStr, rmi, hoje = dayjs()) => {
   };
 };
 
+// Rota principal
 app.get('/', (req, res) => {
   res.send(`
     <html>
@@ -122,11 +123,9 @@ app.get('/', (req, res) => {
           </div>
         </div>
         <footer><p>©Sistema de Cálculo Jurídico da BMZ Advogados Associados</p></footer>
-
         <script>
           async function enviarCalculo(event) {
             event.preventDefault();
-
             const dib = document.getElementById("dibInput").value;
             const arquivo = document.querySelector('input[name="arquivo"]').files[0];
 
@@ -162,11 +161,34 @@ app.get('/', (req, res) => {
         </script>
       </body>
     </html>
-  `); // <== FECHAMENTO do res.send()
+  `);
 });
 
-// ✅ Final do arquivo: iniciar o servidor
+// Rota de cálculo unificado
+app.post('/api/calculo-final', upload.single('arquivo'), async (req, res) => {
+  try {
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const { contributions, dib: dibExtraida } = await extractCNISData(fileBuffer);
+    fs.unlinkSync(req.file.path);
+
+    const dib = req.body.DIB || dibExtraida;
+    if (!dib) return res.status(400).json({ erro: 'DIB não informada.' });
+
+    const rmi = calcularRMI(contributions);
+    const vencidas = calcularVencidas(dib, rmi);
+
+    res.json({
+      rmi,
+      totalVencidas: vencidas.totalGeral,
+      detalhes: vencidas,
+      dib
+    });
+  } catch (error) {
+    console.error('❌ Erro no cálculo final:', error);
+    res.status(500).json({ erro: 'Erro no cálculo final.' });
+  }
+});
+
 app.listen(port, () => {
-  console.log(\`Servidor rodando em http://localhost:\${port}\`);
+  console.log(`Servidor rodando em http://localhost:${port}`);
 });
-
