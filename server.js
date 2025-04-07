@@ -1,4 +1,3 @@
-const calcular = require('./scr/components/CalculoValorDaCausa');
 const express = require('express');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
@@ -7,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const dayjs = require('dayjs');
 const customParseFormat = require('dayjs/plugin/customParseFormat');
+
 dayjs.extend(customParseFormat);
 
 const app = express();
@@ -16,9 +16,6 @@ app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static('public'));
-
-let lastExtraction = [];
-let lastDIB = null;
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -69,21 +66,6 @@ const extractCNISData = async (buffer) => {
   return { contributions, dib };
 };
 
-app.post('/api/extrair-cnis', upload.single('arquivo'), async (req, res) => {
-  try {
-    const fileBuffer = fs.readFileSync(req.file.path);
-    const extraido = await extractCNISData(fileBuffer);
-    fs.unlinkSync(req.file.path);
-
-    // Prioriza DIB enviada manualmente (via Make)
-    const dibFinal = req.body.dib || extraido.dib;
-    res.json({ contributions: extraido.contributions, dib: dibFinal });
-  } catch (error) {
-    console.error('Erro ao processar o PDF:', error);
-    res.status(500).json({ erro: 'Erro ao processar o arquivo.' });
-  }
-});
-
 const calcularRMI = (contributions) => {
   if (!contributions.length) return 0;
   const validValues = contributions.filter(c => typeof c.valor === 'number' && !isNaN(c.valor) && c.valor > 0);
@@ -114,34 +96,6 @@ const calcularVencidas = (dibStr, rmi, hoje = dayjs()) => {
     totalGeral: parseFloat((totalMensal + total13).toFixed(2))
   };
 };
-app.post('/api/calculo-final', upload.single('arquivo'), async (req, res) => {
-  try {
-    const fileBuffer = fs.readFileSync(req.file.path);
-    const { contributions, dib: dibExtraida } = await extractCNISData(fileBuffer);
-    fs.unlinkSync(req.file.path); // remove o arquivo temporário
-
-    // Usa o DIB vindo do formulário (preferencial) ou extraído do CNIS
-    const dib = req.body.DIB || dibExtraida;
-
-    if (!dib) {
-      return res.status(400).json({ erro: 'DIB não informada ou inválida.' });
-    }
-
-    const rmi = calcularRMI(contributions);
-    const vencidas = calcularVencidas(dib, rmi);
-
-    res.json({
-      rmi,
-      totalVencidas: vencidas.totalGeral,
-      detalhes: vencidas,
-      dib
-    });
-  } catch (error) {
-    console.error('❌ Erro na rota /api/calculo-final:', error);
-    res.status(500).json({ erro: 'Erro no cálculo final.' });
-  }
-});
-
 
 app.get('/', (req, res) => {
   res.send(`
@@ -182,172 +136,6 @@ app.get('/', (req, res) => {
             }
 
             const formData = new FormData();
-            formData.append("arquivo", arquivo);
-            formData.append("DIB", dib);
-
-            try {
-              const resposta = await fetch("/api/calculo-final", {
-                method: "POST",
-                body: formData
-              });
-
-              const resultado = await resposta.json();
-
-              if (resultado.erro) {
-                alert("Erro: " + resultado.erro);
-              } else {
-                alert(
-                  \`✅ RMI: R$ \${resultado.rmi?.toFixed(2)}\\n📆 Total vencidas: R$ \${resultado.totalVencidas?.toFixed(2)}\`
-                );
-              }
-            } catch (err) {
-              console.error(err);
-              alert("❌ Erro ao calcular.");
-            }
-          }
-        </script>
-      </body>
-    </html>
-  `);
-});
-
-
-app.post('/enviar', upload.single('arquivo'), async (req, res) => {
-  try {
-    const fileBuffer = fs.readFileSync(req.file.path);
-    const { contributions, dib } = await extractCNISData(fileBuffer);
-    fs.unlinkSync(req.file.path);
-
-    lastExtraction = contributions;
-    lastDIB = dib;
-
-    const rmi = calcularRMI(contributions);
-    const vencidas = dib ? calcularVencidas(dib, rmi) : { totalGeral: 'indisponível' };
-
-    res.send(`
-      <html>
-      <head>
-        <link rel="stylesheet" href="/style.css">
-        <title>Resultado CNIS</title>
-      </head>
-      <body>
-        <div class="titulo">
-          <h1>Resultado</h1>
-        </div>
-        <div class="container">
-          <div class="item">
-            <p><strong>DIB:</strong> ${dib || 'não encontrada'}</p>
-            <p><strong>RMI:</strong> R$ ${rmi.toFixed(2)}</p>
-            <p><strong>Total vencidas:</strong> R$ ${vencidas.totalGeral}</p>
-            <form action="/ver" method="get">
-              <button type="submit">Ver dados extraídos</button>
-            </form>
-            <form action="/calcular" method="get">
-              <button type="submit">Ver detalhes RMI</button>
-            </form>
-            ${dib ? `
-            <form action="/vencidas" method="get">
-              <input type="hidden" name="dib" value="${dib}" />
-              <input type="hidden" name="rmi" value="${rmi}" />
-              <button type="submit">Ver detalhes vencidas</button>
-            </form>
-            ` : ''}
-          </div>
-        </div>
-        <footer><p>©Sistema de Cálculo Jurídico da BMZ Advogados Associados</p></footer>
-      </body>
-      </html>
-    `);
-  } catch (error) {
-    console.error('Erro ao processar o PDF:', error);
-    res.status(500).send('Erro ao processar o arquivo.');
-  }
-});
-
-app.get('/ver', (req, res) => {
-  res.send(`
-    <html><head><link rel="stylesheet" href="/style.css"></head><body>
-    <div class="titulo"><h1>Extração</h1></div>
-    <div class="container">
-    <div class="item">
-    <pre>${JSON.stringify(lastExtraction, null, 2)}</pre>
-    <a href="/">Voltar</a>
-    </div>
-    </div>
-    </body></html>
-  `);
-});
-
-app.get('/calcular', (req, res) => {
-  const rmi = calcularRMI(lastExtraction);
-  res.send(`
-    <html><head><link rel="stylesheet" href="/style.css"></head><body>
-    <div class="titulo"><h1>RMI</h1></div>
-    <div class="container"><div class="item">
-    <h3>RMI calculada: R$ ${rmi.toFixed(2)}</h3>
-    <a href="/">Voltar</a>
-    </div></div>
-    </body></html>
-  `);
-});
-
-app.get('/vencidas', (req, res) => {
-  const { dib, rmi } = req.query;
-  const resultado = calcularVencidas(dib, parseFloat(rmi));
-  if (resultado.erro) return res.send(`<h3>${resultado.erro}</h3><a href="/">Voltar</a>`);
-  res.send(`
-    <html><head><link rel="stylesheet" href="/style.css"></head><body>
-    <div class="titulo"><h1>Parcelas Vencidas</h1></div>
-    <div class="container">
-    <div class="item">
-    <ul>
-      <li>Meses: ${resultado.meses}</li>
-      <li>13ºs: ${resultado.decimos}</li>
-      <li>Total mensal: R$ ${resultado.totalMensal}</li>
-      <li>Total 13º: R$ ${resultado.total13}</li>
-      <li><b>Total geral: R$ ${resultado.totalGeral}</b></li>
-    </ul>
-    <a href="/">Voltar</a>
-    </div>
-    </div>
-    </body></html>
-  `);
-});
-
-app.post('/api/extrair-cnis', upload.single('arquivo'), async (req, res) => {
-  try {
-    const fileBuffer = fs.readFileSync(req.file.path);
-    const { contributions, dib } = await extractCNISData(fileBuffer);
-    fs.unlinkSync(req.file.path);
-    res.json({ contributions, dib });
-  } catch (error) {
-    console.error('Erro ao processar o PDF:', error);
-    res.status(500).json({ erro: 'Erro ao processar o arquivo.' });
-  }
-});
-
-app.post('/api/calcular-rmi', (req, res) => {
-  try {
-    const lista = req.body;
-    const rmi = calcularRMI(lista);
-    res.json({ rmi });
-  } catch (err) {
-    console.error('Erro ao calcular RMI:', err);
-    res.status(400).json({ erro: 'Erro no cálculo da RMI' });
-  }
-});
-
-app.post('/api/calcular-vencidas', (req, res) => {
-  try {
-    const { dib, rmi } = req.body;
-    const resultado = calcularVencidas(dib, parseFloat(rmi));
-    res.json(resultado);
-  } catch (err) {
-    console.error('Erro ao calcular vencidas:', err);
-    res.status(400).json({ erro: 'Erro no cálculo de parcelas vencidas' });
-  }
-});
-
-app.listen(port, () => {
-  console.log(`Servidor rodando em http://localhost:${port}`);
-});
+            formData.append("
+::contentReference[oaicite:15]{index=15}
+ 
