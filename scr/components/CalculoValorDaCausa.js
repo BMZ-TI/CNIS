@@ -49,7 +49,7 @@ const calcularParcelasVencidas = (rmi, dib) => {
   };
 
   const rmi = calcularRMI();
-  const vencidas = calcularParcelasVencidas(rmi);
+  const vencidas = calcularParcelasVencidas(rmi, dib); 
   const vincendas = calcularParcelasVincendas(rmi);
 
   return {
