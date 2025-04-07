@@ -88,10 +88,10 @@ const gerarTextoValorCausa = ({ rmi, vencidas, vincendas, total }) => {
     const formatarExtenso = (valor) => numeroParaExtenso(valor);
     valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-  const formatarExtenso = (valor) => {
-    const extenso = require('extenso-js');
-    return extenso(valor.toFixed(2).replace('.', ','), { mode: 'currency' });
-  };
+const numeroPorExtenso = require('numero-por-extenso');
+const formatarExtenso = (valor) => {
+  return numeroPorExtenso.porExtenso(valor, numeroPorExtenso.estilo.monetario);
+};
 
   return `Atribui-se à causa o valor de ${formatarMoeda(total)} (${formatarExtenso(total)}), ` +
          `sendo ${formatarMoeda(vencidas)} (${formatarExtenso(vencidas)}) referente às parcelas vencidas ` +
