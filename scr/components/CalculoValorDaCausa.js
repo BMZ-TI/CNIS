@@ -10,7 +10,7 @@ const calcularValorDaCausa = ({ contributions, dib }) => {
 
   const formatar = (valor) => Number(valor.toFixed(2));
 
-  // 🔒 FILTRO para eliminar contribuições anteriores a 04/1994
+  // 🔒 Ignorar contribuições antes de abril de 1994
   const contribFiltradas = contributions.filter(c => {
     const [mes, ano] = c.data.split('/');
     const dataRef = dayjs(`01/${mes}/${ano}`, 'DD/MM/YYYY');
