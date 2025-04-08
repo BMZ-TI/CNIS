@@ -1,8 +1,8 @@
 const calcularValorDaCausa = ({ contributions, dib }) => {
   const dayjs = require('dayjs');
-  const customParse = require('dayjs/plugin/customParseFormat');
+  const customParseFormat = require('dayjs/plugin/customParseFormat');
   const fs = require('fs');
-  dayjs.extend(customParse);
+  dayjs.extend(customParseFormat);
 
   const correcaoMonetaria = JSON.parse(
     fs.readFileSync('./dados/correcao_monetaria_unificada_1965_2025_CORRIGIDO.json', 'utf8')
@@ -10,8 +10,21 @@ const calcularValorDaCausa = ({ contributions, dib }) => {
 
   const formatar = (valor) => Number(valor.toFixed(2));
 
+  const filtrarContribuicoesValidas = () => {
+    return contributions.filter(c => {
+      const [mes, ano] = c.data.split('/');
+      const data = dayjs(`01/${mes}/${ano}`, 'DD/MM/YYYY');
+      return (
+        typeof c.valor === 'number' &&
+        c.valor > 0 &&
+        data.isValid() &&
+        data.isAfter('1994-03-31')
+      );
+    });
+  };
+
   const calcularRMI = () => {
-    const validos = contributions.filter(c => typeof c.valor === 'number' && c.valor > 0);
+    const validos = filtrarContribuicoesValidas();
     if (validos.length === 0) return 0;
 
     const ordenados = [...validos].sort((a, b) => b.valor - a.valor);
