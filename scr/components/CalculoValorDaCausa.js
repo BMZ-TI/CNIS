@@ -1,8 +1,8 @@
 const calcularValorDaCausa = ({ contributions, dib }) => {
   const dayjs = require('dayjs');
-  const customParseFormat = require('dayjs/plugin/customParseFormat');
+  const customParse = require('dayjs/plugin/customParseFormat');
   const fs = require('fs');
-  dayjs.extend(customParseFormat);
+  dayjs.extend(customParse);
 
   const correcaoMonetaria = JSON.parse(
     fs.readFileSync('./dados/correcao_monetaria_unificada_1965_2025_CORRIGIDO.json', 'utf8')
@@ -10,21 +10,15 @@ const calcularValorDaCausa = ({ contributions, dib }) => {
 
   const formatar = (valor) => Number(valor.toFixed(2));
 
-  const filtrarContribuicoesValidas = () => {
-    return contributions.filter(c => {
-      const [mes, ano] = c.data.split('/');
-      const data = dayjs(`01/${mes}/${ano}`, 'DD/MM/YYYY');
-      return (
-        typeof c.valor === 'number' &&
-        c.valor > 0 &&
-        data.isValid() &&
-        data.isAfter('1994-03-31')
-      );
-    });
-  };
+  // 🔒 FILTRO para eliminar contribuições anteriores a 04/1994
+  const contribFiltradas = contributions.filter(c => {
+    const [mes, ano] = c.data.split('/');
+    const dataRef = dayjs(`01/${mes}/${ano}`, 'DD/MM/YYYY');
+    return dataRef.isValid() && dataRef.isAfter(dayjs('31/03/1994', 'DD/MM/YYYY'));
+  });
 
   const calcularRMI = () => {
-    const validos = filtrarContribuicoesValidas();
+    const validos = contribFiltradas.filter(c => typeof c.valor === 'number' && c.valor > 0);
     if (validos.length === 0) return 0;
 
     const ordenados = [...validos].sort((a, b) => b.valor - a.valor);
@@ -72,7 +66,6 @@ const calcularValorDaCausa = ({ contributions, dib }) => {
     mesesVencidos: vencidasCalculadas.meses,
   };
 };
-
 
 const gerarTextoValorCausa = ({ rmi, vencidas, vincendas, total }) => {
   return `\n✅ RMI: R$ ${rmi.toFixed(2)}\n📆 Parcelas vencidas: R$ ${vencidas.toFixed(2)}\n📆 Parcelas vincendas (13 x RMI): R$ ${vincendas.toFixed(2)}\n💰 Valor total da causa: R$ ${total.toFixed(2)}\n`.trim();
