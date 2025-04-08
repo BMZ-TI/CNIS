@@ -58,10 +58,10 @@ const total = vencidasCalculadas.total !== null
 
 return {
   rmi,
-  vencidas: vencidasCalculadas.total,
+  vencidas: vencidas.total,
   vincendas,
-  total,
-  mesesVencidos: vencidasCalculadas.meses
+  total: vencidas.total !== null ? formatar(vencidas.total + vincendas) : null,
+  mesesVencidos: vencidas.meses,
 };
 
 };
