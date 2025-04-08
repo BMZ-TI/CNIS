@@ -170,8 +170,8 @@ app.post('/api/valor-da-causa', upload.single('arquivo'), async (req, res) => {
     const textoExtraido = await extractCNISData(fileBuffer);
     fs.unlinkSync(req.file.path);
 
-    const { contributions, dib } = textoExtraido;
-    const resultado = calcularValorDaCausa({ contribuições: contributions, dib });
+    const { contributions: contribuições, dib } = textoExtraido;
+    const resultado = calcularValorDaCausa({ contribuições, dib });
     const texto = `\nTotal: R$ ${resultado.total?.toFixed(2)}
                     Parcelas vencidas: R$ ${resultado.vencidas?.toFixed(2)}
                     Parcelas vincendas: R$ ${resultado.vincendas?.toFixed(2)}
