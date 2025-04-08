@@ -62,7 +62,6 @@ const extractCNISData = async (buffer) => {
 };
 
 app.get('/', (req, res) => {
-  console.log('🧪 Resultado do cálculo:', resultado);
   res.send(`
     <html>
       <head>
