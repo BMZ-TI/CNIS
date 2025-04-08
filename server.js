@@ -170,24 +170,26 @@ app.post('/api/valor-da-causa', upload.single('arquivo'), async (req, res) => {
     const textoExtraido = await extractCNISData(fileBuffer);
     fs.unlinkSync(req.file.path);
 
-    const { contributions: contribuições, dib: dibExtraida } = textoExtraido;
-    const dibFinal = req.body.DIB || dibExtraida;
-    const resultado = calcularValorDaCausa({ contribuições, dib: dibFinal });
-    const texto = `\nTotal: R$ ${resultado.total?.toFixed(2)}
-                    Parcelas vencidas: R$ ${resultado.vencidas?.toFixed(2)}
-                    Parcelas vincendas: R$ ${resultado.vincendas?.toFixed(2)}
-                    RMI: R$ ${resultado.rmi?.toFixed(2)}`;
+    const { contributions, dib: dibExtraida } = textoExtraido;
+    const dib = req.body.DIB || dibExtraida;
+    
+    console.log('📥 DIB recebida:', dib);
+    console.log('📥 Número de contribuições:', contributions.length);
 
-    console.log('🧮 Dados recebidos para cálculo:', contributions, dib);
-    console.log('📊 Resultado:', resultado);
+    if (!dib) return res.status(400).json({ erro: 'DIB não informada.' });
 
+    const resultado = calcularValorDaCausa({ contributions, dib });
+    console.log('📊 Resultado calculado:', resultado);
 
+    const texto = gerarTextoValorCausa(resultado);
     res.json({ texto });
+
   } catch (error) {
-    console.error('Erro ao calcular valor da causa:', error);
+    console.error('❌ Erro ao calcular valor da causa:', error);
     res.status(500).json({ erro: 'Erro ao calcular valor da causa.' });
   }
 });
+
 
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
