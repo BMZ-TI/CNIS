@@ -177,6 +177,8 @@ app.post('/api/valor-da-causa', upload.single('arquivo'), async (req, res) => {
                     Parcelas vincendas: R$ ${resultado.vincendas?.toFixed(2)}
                     RMI: R$ ${resultado.rmi?.toFixed(2)}`;
 
+    console.log('🧮 Dados recebidos para cálculo:', contributions, dib);
+    console.log('📊 Resultado:', resultado);
 
 
     res.json({ texto });
