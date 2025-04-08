@@ -177,6 +177,7 @@ app.post('/api/valor-da-causa', upload.single('arquivo'), async (req, res) => {
                     Parcelas vincendas: R$ ${resultado.vincendas?.toFixed(2)}
                     RMI: R$ ${resultado.rmi?.toFixed(2)}`;
 
+
     res.json({ texto });
   } catch (error) {
     console.error('Erro ao calcular valor da causa:', error);
