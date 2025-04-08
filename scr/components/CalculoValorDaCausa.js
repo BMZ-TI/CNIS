@@ -1,4 +1,4 @@
-const calcularValorDaCausa = ({ contribuições, dib }) => {
+  const calcularValorDaCausa = ({ contributions, dib }) => {
   const dayjs = require('dayjs');
   const customParse = require('dayjs/plugin/customParseFormat');
   const fs = require('fs');
