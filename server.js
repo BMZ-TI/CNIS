@@ -189,6 +189,32 @@ app.post('/api/valor-da-causa', upload.single('arquivo'), async (req, res) => {
     res.status(500).json({ erro: 'Erro ao calcular valor da causa.' });
   }
 });
+app.post('/api/gerar-resultado', upload.single('arquivo'), async (req, res) => {
+  try {
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const { contributions, dib: dibExtraida } = await extractCNISData(fileBuffer);
+    fs.unlinkSync(req.file.path);
+
+    const dib = req.body.dib || dibExtraida;
+    if (!dib) return res.status(400).json({ erro: 'DIB não informada.' });
+
+    const resultado = calcularValorDaCausa({ contributions, dib });
+
+    res.json({
+      sucesso: true,
+      rmi: resultado.rmi,
+      vencidas: resultado.vencidas,
+      vincendas: resultado.vincendas,
+      total: resultado.total,
+      mesesVencidos: resultado.mesesVencidos,
+      dib
+    });
+  } catch (err) {
+    console.error('Erro ao gerar resultado:', err);
+    res.status(500).json({ erro: 'Erro ao gerar resultado.' });
+  }
+});
+
 
 
 app.listen(port, () => {
