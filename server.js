@@ -1,3 +1,5 @@
+// server.js
+
 const express = require('express');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
@@ -13,6 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static('public'));
 
+// Configuração de upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = './uploads';
@@ -25,6 +28,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Função para extrair dados do CNIS
 const extractCNISData = async (buffer) => {
   const data = await pdfParse(buffer);
   const text = data.text;
@@ -61,6 +65,7 @@ const extractCNISData = async (buffer) => {
   return { contributions, dib };
 };
 
+// Rota principal
 app.get('/', (req, res) => {
   res.send(`
     <html>
@@ -152,6 +157,7 @@ app.get('/', (req, res) => {
   `);
 });
 
+// API: Verificação simples do CNIS
 app.post('/api/verificar-dados-cnis', upload.single('arquivo'), async (req, res) => {
   try {
     const fileBuffer = fs.readFileSync(req.file.path);
@@ -164,59 +170,27 @@ app.post('/api/verificar-dados-cnis', upload.single('arquivo'), async (req, res)
   }
 });
 
+// API: Geração do texto com base nos cálculos
 app.post('/api/valor-da-causa', upload.single('arquivo'), async (req, res) => {
   try {
     const fileBuffer = fs.readFileSync(req.file.path);
     const textoExtraido = await extractCNISData(fileBuffer);
     fs.unlinkSync(req.file.path);
 
-    const { contributions, dib: dibExtraida } = textoExtraido;
-    const dib = req.body.DIB || dibExtraida;
-    
-    console.log('📥 DIB recebida:', dib);
-    console.log('📥 Número de contribuições:', contributions.length);
+    const dibFinal = req.body.DIB || textoExtraido.dib;
+    const { contributions } = textoExtraido;
 
-    if (!dib) return res.status(400).json({ erro: 'DIB não informada.' });
-
-    const resultado = calcularValorDaCausa({ contributions, dib });
-    console.log('📊 Resultado calculado:', resultado);
-
+    const resultado = calcularValorDaCausa({ contributions, dib: dibFinal });
     const texto = gerarTextoValorCausa(resultado);
-    res.json({ texto });
 
+    res.json({ texto });
   } catch (error) {
-    console.error('❌ Erro ao calcular valor da causa:', error);
+    console.error('Erro ao calcular valor da causa:', error);
     res.status(500).json({ erro: 'Erro ao calcular valor da causa.' });
   }
 });
-app.post('/api/gerar-resultado', upload.single('arquivo'), async (req, res) => {
-  try {
-    const fileBuffer = fs.readFileSync(req.file.path);
-    const { contributions, dib: dibExtraida } = await extractCNISData(fileBuffer);
-    fs.unlinkSync(req.file.path);
 
-    const dib = req.body.dib || dibExtraida;
-    if (!dib) return res.status(400).json({ erro: 'DIB não informada.' });
-
-    const resultado = calcularValorDaCausa({ contributions, dib });
-
-    res.json({
-      sucesso: true,
-      rmi: resultado.rmi,
-      vencidas: resultado.vencidas,
-      vincendas: resultado.vincendas,
-      total: resultado.total,
-      mesesVencidos: resultado.mesesVencidos,
-      dib
-    });
-  } catch (err) {
-    console.error('Erro ao gerar resultado:', err);
-    res.status(500).json({ erro: 'Erro ao gerar resultado.' });
-  }
-});
-
-
-
+// Inicializa o servidor
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });
