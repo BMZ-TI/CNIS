@@ -1,54 +1,77 @@
+// scr/components/CalculoValorDaCausa.js
+
+const fs = require('fs');
+const dayjs = require('dayjs');
+const customParse = require('dayjs/plugin/customParseFormat');
+dayjs.extend(customParse);
+
+const correcaoMonetaria = JSON.parse(
+  fs.readFileSync('./dados/correcao_monetaria_unificada_1965_2025_CORRIGIDO.json', 'utf8')
+);
+
+// Função auxiliar para arredondar valores
+const formatar = (valor) => Number(valor.toFixed(2));
+
 const calcularValorDaCausa = ({ contributions, dib }) => {
-  const dayjs = require('dayjs');
-  const customParse = require('dayjs/plugin/customParseFormat');
-  const fs = require('fs');
-  dayjs.extend(customParse);
-
-  const correcaoMonetaria = JSON.parse(
-    fs.readFileSync('./dados/correcao_monetaria_unificada_1965_2025_CORRIGIDO.json', 'utf8')
-  );
-
-  const formatar = (valor) => Number(valor.toFixed(2));
-
-  // 🔒 Ignorar contribuições antes de abril de 1994
+  // 1. Filtra contribuições válidas e pós-03/1994
   const contribFiltradas = contributions.filter(c => {
     const [mes, ano] = c.data.split('/');
     const dataRef = dayjs(`01/${mes}/${ano}`, 'DD/MM/YYYY');
-    return dataRef.isValid() && dataRef.isAfter(dayjs('31/03/1994', 'DD/MM/YYYY'));
+    return (
+      dataRef.isValid() &&
+      dataRef.isAfter(dayjs('31/03/1994', 'DD/MM/YYYY')) &&
+      typeof c.valor === 'number' &&
+      c.valor > 0
+    );
   });
 
+  // 2. Calcula a RMI com base nos 80% maiores salários
   const calcularRMI = () => {
-    const validos = contribFiltradas.filter(c => typeof c.valor === 'number' && c.valor > 0);
-    if (validos.length === 0) return 0;
-
-    const ordenados = [...validos].sort((a, b) => b.valor - a.valor);
+    if (!contribFiltradas.length) return 0;
+    const ordenados = [...contribFiltradas].sort((a, b) => b.valor - a.valor);
     const usados = ordenados.slice(0, Math.floor(ordenados.length * 0.8));
     const media = usados.reduce((acc, cur) => acc + cur.valor, 0) / usados.length;
     return formatar(media * 0.5);
   };
 
+  // 3. Calcula parcelas vencidas com base na prescrição quinquenal
   const calcularParcelasVencidas = (rmi, dib) => {
     if (!dib || typeof dib !== 'string') return { total: null, meses: 0 };
 
     const inicio = dayjs(dib, ['YYYY-MM-DD', 'DD/MM/YYYY']);
     const fim = dayjs();
-    const meses = fim.diff(inicio, 'month');
+
+    // Prescrição: máximo 60 meses + 13ºs
+    const mesesPossiveis = fim.diff(inicio, 'month');
+    const mesesPrescritos = Math.min(mesesPossiveis, 60);
 
     const vencidas = [];
-    for (let i = 0; i < meses; i++) {
+    for (let i = 0; i < mesesPrescritos; i++) {
       const dataRef = inicio.add(i, 'month');
       const chave = `${dataRef.format('MM')}/${dataRef.format('YYYY')}`;
       const fator = correcaoMonetaria[chave] || 1;
       vencidas.push(rmi * fator);
     }
 
-    const total = vencidas.reduce((a, b) => a + b, 0);
+    // Inclui 13ºs proporcionalmente a cada 12 meses
+    const anos = Math.floor(mesesPrescritos / 12);
+    const decimos = Array.from({ length: anos }, (_, i) => {
+      const ref = inicio.add((i + 1) * 12 - 1, 'month');
+      const chave = `${ref.format('MM')}/${ref.format('YYYY')}`;
+      const fator = correcaoMonetaria[chave] || 1;
+      return rmi * fator;
+    });
+
+    const totalMensal = vencidas.reduce((a, b) => a + b, 0);
+    const total13 = decimos.reduce((a, b) => a + b, 0);
+
     return {
-      total: formatar(total),
-      meses
+      total: formatar(totalMensal + total13),
+      meses: mesesPrescritos
     };
   };
 
+  // 4. Calcula parcelas vincendas fixas: 13 x RMI
   const calcularParcelasVincendas = (rmi) => formatar(rmi * 13);
 
   const rmi = calcularRMI();
@@ -64,6 +87,7 @@ const calcularValorDaCausa = ({ contributions, dib }) => {
     vincendas,
     total,
     mesesVencidos: vencidasCalculadas.meses,
+    dib
   };
 };
 
