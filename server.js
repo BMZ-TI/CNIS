@@ -189,6 +189,32 @@ app.post('/api/valor-da-causa', upload.single('arquivo'), async (req, res) => {
     res.status(500).json({ erro: 'Erro ao calcular valor da causa.' });
   }
 });
+app.post('/api/calculo-make', upload.single('arquivo'), async (req, res) => {
+  try {
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const extraido = await extractCNISData(fileBuffer);
+    fs.unlinkSync(req.file.path);
+
+    const dib = req.body.dib || extraido.dib;
+    const contributions = extraido.contributions;
+
+    const resultado = calcularValorDaCausa({ contributions, dib });
+
+    res.json({
+      sucesso: true,
+      rmi: resultado.rmi,
+      vencidas: resultado.vencidas,
+      vincendas: resultado.vincendas,
+      total: resultado.total,
+      mesesVencidos: resultado.mesesVencidos,
+      dib
+    });
+  } catch (error) {
+    console.error('Erro na rota /api/calculo-make:', error);
+    res.status(500).json({ erro: 'Erro no cálculo via Make.' });
+  }
+});
+
 
 // Inicializa o servidor
 app.listen(port, () => {
